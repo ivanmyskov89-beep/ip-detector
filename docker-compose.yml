@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  ip-detector-cli:
+    build: .
+    command: python cli.py --verbose
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: "no"
+
+  ip-detector-web:
+    build: .
+    command: python web/app.py
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped

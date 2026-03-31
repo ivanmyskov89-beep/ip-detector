@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Detector - Геолокация по IP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 30px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: left;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .info-item {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+            word-break: break-all;
+            text-align: right;
+            max-width: 60%;
+        }
+        
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .info-value {
+                text-align: left;
+                max-width: 100%;
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📍 IP Detector</h1>
+        <p class="subtitle">Определение геолокации по IP-адресу</p>
+        
+        <button class="btn" id="detectBtn">
+            🔍 Определить моё местоположение
+        </button>
+        
+        <div id="result" class="result">
+            <div id="status"></div>
+            <div id="info"></div>
+        </div>
+        
+        <div class="footer">
+            Данные загружаются на Яндекс.Диск в папку "IP_Detector"
+        </div>
+    </div>
+    
+    <script>
+        const detectBtn = document.getElementById('detectBtn');
+        const resultDiv = document.getElementById('result');
+        const statusDiv = document.getElementById('status');
+        const infoDiv = document.getElementById('info');
+        
+        detectBtn.addEventListener('click', async () => {
+            // Отключаем кнопку
+            detectBtn.disabled = true;
+            detectBtn.innerHTML = 'Определяем... <span class="loader"></span>';
+            
+            // Показываем результат
+            resultDiv.classList.remove('show');
+            statusDiv.innerHTML = '';
+            infoDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="success">✅ Данные успешно загружены на Яндекс.Диск!</div>';
+                    
+                    infoDiv.innerHTML = `
+                        <div class="info-item">
+                            <span class="info-label">🌐 IP-адрес:</span>
+                            <span class="info-value">${data.data.ip}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🏙️ Город:</span>
+                            <span class="info-value">${data.data.city}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🇷🇺 Страна:</span>
+                            <span class="info-value">${data.data.country}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🗺️ Регион:</span>
+                            <span class="info-value">${data.data.region}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📍 Координаты:</span>
+                            <span class="info-value">${data.data.location}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">🏢 Провайдер:</span>
+                            <span class="info-value">${data.data.org}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">⏰ Часовой пояс:</span>
+                            <span class="info-value">${data.data.timezone}</span>
+                        </div>
+                    `;
+                    
+                    resultDiv.classList.add('show');
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                    resultDiv.classList.add('show');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Ошибка подключения: ${error.message}</div>`;
+                resultDiv.classList.add('show');
+            } finally {
+                detectBtn.disabled = false;
+                detectBtn.innerHTML = '🔍 Определить моё местоположение';
+            }
+        });
+    </script>
+</body>
+</html>
